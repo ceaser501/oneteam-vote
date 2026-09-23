@@ -154,7 +154,7 @@
   <main id="view-result" class="hidden">
     <section class="card">
       <p class="muted"><span class="live"></span>실시간으로 바뀌어요</p>
-      <div class="big"><span id="r-count">0</span> / 14명</div>
+      <div class="big"><span id="r-count">0</span> / <span id="r-total">13</span>명</div>
       <p class="names" id="r-missing"></p>
     </section>
 
@@ -202,7 +202,7 @@ const SUPABASE_URL = 'https://gxyckkinlygeasruapmj.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable__NKAf1NZsOddwbkgqYGTbw_Smez0lcv';
 
 // 명단 순서는 조 편성표 그대로. SQL의 check 목록과 같아야 한다.
-const MEMBERS = ['최주열','금봉수','박선애','차슬기','김은화','오영문','전승훈',
+const MEMBERS = ['최주열','금봉수','박선애','차슬기','김은화','전승훈',
                  '김태수','김동훈','박순영','김인규','김수연','성우현','최재훈'];
 
 // 후보 날짜: 행사 기한(10/16 전)까지의 평일에서 공휴일을 뺀다.
@@ -386,6 +386,7 @@ function barRow(title, count, total, extra, best) {
 function renderResult() {
   const n = votes.length;
   $('r-count').textContent = n;
+  $('r-total').textContent = MEMBERS.length;
   const missing = MEMBERS.filter((m) => !votes.some((v) => v.name === m));
   $('r-missing').textContent = missing.length ? `아직: ${missing.join(', ')}` : '모두 투표했어요!';
 
@@ -469,7 +470,8 @@ async function drawQR() {
 async function load() {
   const { data, error } = await sb.from('oneteam_votes').select('*');
   if (error) { console.error(error); return; }
-  votes = data || [];
+  // 명단에서 빠진 사람의 표가 남아 있어도 집계에 넣지 않는다.
+  votes = (data || []).filter((v) => MEMBERS.includes(v.name));
   renderNames(); renderSubmit();
   if (!$('view-result').classList.contains('hidden')) renderResult();
 }
