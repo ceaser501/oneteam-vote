@@ -56,6 +56,10 @@
   .chip .rank { position: absolute; top: -9px; left: -6px; background: var(--accent); color: #fff; border-radius: 10px; font-size: 13px; padding: 1px 7px; font-weight: 700; }
   .chip.ranked { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
   .chip.ranked::after { content: none; }
+  .chip.absent { width: 100%; margin-top: 12px; }
+  .chip.absent.on { border-color: var(--warn); background: transparent; color: var(--warn); }
+  .chip.absent.on::after { color: var(--warn); }
+  .dim { opacity: .35; pointer-events: none; }
   .week { font-size: 14px; color: var(--sub); margin: 12px 0 6px; }
   .week:first-child { margin-top: 0; }
   .row { display: flex; gap: 8px; margin-top: 10px; }
@@ -78,7 +82,7 @@
   /* 결과 */
   .big { font-size: 32px; font-weight: 800; }
   .muted { color: var(--sub); font-size: 15px; }
-  .names { font-size: 15px; color: var(--sub); }
+  .names { font-size: 15px; color: var(--sub); white-space: pre-line; }
   .bar-row { padding: 8px 0; border-bottom: 1px solid var(--line); }
   .bar-row:last-child { border-bottom: 0; }
   .bar-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
@@ -127,16 +131,17 @@
         <button class="link" id="dates-all">전부 가능</button>
         <button class="link" id="dates-none">모두 지우기</button>
       </div>
+      <button class="chip absent" id="absent">참석 불가능</button>
     </section>
 
-    <section class="card">
+    <section class="card" id="step-region">
       <h2><span class="n">3</span>원하는 지역</h2>
       <p class="hint">여러 곳 골라도 돼요.</p>
       <div id="regions" class="grid g2"></div>
       <div style="margin-top:10px"><input type="text" id="region-etc" placeholder="다른 곳 (직접 적기)" maxlength="30"></div>
     </section>
 
-    <section class="card">
+    <section class="card" id="step-class">
       <h2><span class="n">4</span>하고 싶은 클래스</h2>
       <p class="hint">하고 싶은 순서대로 눌러주세요.</p>
       <div id="classes" class="grid g3"></div>
@@ -222,6 +227,11 @@ const CLASSES = [
   { key: '공예',   icon: '🏺' },
 ];
 
+// 참석 불가는 표를 바꾸지 않고 dates에 이 값 하나만 넣어 적는다.
+// 이미 들어온 표가 있어서 칸을 새로 만들지 않았다(SQL을 다시 돌릴 일도 없다).
+const ABSENT = '불참';
+const isAbsent = (v) => (v.dates || []).includes(ABSENT);
+
 const DOW = ['일','월','화','수','목','금','토'];
 const $ = (id) => document.getElementById(id);
 const el = (tag, props = {}, ...kids) => {
@@ -249,7 +259,7 @@ const label = (iso) => {
 };
 
 // ===================== 상태 =====================
-const state = { name: null, dates: new Set(), regions: new Set(), classes: [], memo: '' };
+const state = { name: null, absent: false, dates: new Set(), regions: new Set(), classes: [], memo: '' };
 let votes = [];   // 서버에 있는 전체 표
 let sb = null;
 
@@ -269,7 +279,8 @@ function pickName(n) {
   state.name = n;
   const mine = votes.find((v) => v.name === n);
   if (mine) {
-    state.dates = new Set(mine.dates || []);
+    state.absent = isAbsent(mine);
+    state.dates = new Set((mine.dates || []).filter((d) => d !== ABSENT));
     const known = new Set(REGIONS);
     state.regions = new Set((mine.regions || []).filter((r) => known.has(r)));
     $('region-etc').value = (mine.regions || []).filter((r) => !known.has(r)).join(', ');
@@ -282,6 +293,12 @@ function pickName(n) {
 
 function renderDates() {
   const box = $('dates'); box.replaceChildren();
+  // 불참이면 날짜는 고를 수 없게 흐리게 두고, 지역·클래스는 묻지 않는다.
+  box.classList.toggle('dim', state.absent);
+  $('dates-all').parentElement.classList.toggle('dim', state.absent);
+  $('absent').classList.toggle('on', state.absent);
+  $('step-region').classList.toggle('hidden', state.absent);
+  $('step-class').classList.toggle('hidden', state.absent);
   // 주 단위로 끊어 보여준다. 12개를 한 덩어리로 늘어놓으면 요일을 세기 어렵다.
   let week = null, grid = null;
   for (const iso of DATES) {
@@ -328,6 +345,7 @@ function renderClasses() {
 
 function missingStep() {
   if (!state.name) return '이름을 먼저 골라주세요';
+  if (state.absent) return null;
   if (!state.dates.size) return '가능한 날짜를 골라주세요';
   if (!state.classes.length) return '클래스를 골라주세요';
   return null;
@@ -344,6 +362,7 @@ function renderAll() { renderNames(); renderDates(); renderRegions(); renderClas
 
 $('dates-all').onclick = () => { state.dates = new Set(DATES); renderDates(); renderSubmit(); };
 $('dates-none').onclick = () => { state.dates.clear(); renderDates(); renderSubmit(); };
+$('absent').onclick = () => { state.absent = !state.absent; renderDates(); renderSubmit(); };
 $('classes-reset').onclick = () => { state.classes = []; renderClasses(); renderSubmit(); };
 
 $('submit').onclick = async () => {
@@ -352,7 +371,7 @@ $('submit').onclick = async () => {
   const etc = $('region-etc').value.split(/[,，]/).map((s) => s.trim()).filter(Boolean);
   const row = {
     name: state.name,
-    dates: [...state.dates].sort(),
+    dates: state.absent ? [ABSENT] : [...state.dates].sort(),
     regions: [...state.regions, ...etc],
     classes: state.classes,
     memo: $('memo').value.trim() || null,
@@ -384,20 +403,24 @@ function barRow(title, count, total, extra, best) {
 }
 
 function renderResult() {
-  const n = votes.length;
-  $('r-count').textContent = n;
+  $('r-count').textContent = votes.length;
+  // 날짜·클래스·지역은 참석하는 사람만으로 센다.
+  const absent = votes.filter(isAbsent).map((v) => v.name);
+  const going = votes.filter((v) => !isAbsent(v));
+  const n = going.length;
   $('r-total').textContent = MEMBERS.length;
   const missing = MEMBERS.filter((m) => !votes.some((v) => v.name === m));
-  $('r-missing').textContent = missing.length ? `아직: ${missing.join(', ')}` : '모두 투표했어요!';
+  $('r-missing').textContent = (missing.length ? `아직: ${missing.join(', ')}` : '모두 투표했어요!')
+    + (absent.length ? `\n불참: ${absent.join(', ')}` : '');
 
   // 날짜: 되는 사람 많은 순. 같으면 이른 날짜 먼저.
-  const dates = DATES.map((iso) => ({ iso, yes: votes.filter((v) => (v.dates || []).includes(iso)) }))
+  const dates = DATES.map((iso) => ({ iso, yes: going.filter((v) => (v.dates || []).includes(iso)) }))
     .sort((a, b) => b.yes.length - a.yes.length || a.iso.localeCompare(b.iso));
   const top = dates[0]?.yes.length || 0;
   const rd = $('r-dates'); rd.replaceChildren();
   for (const d of dates) {
     const { md, dow } = label(d.iso);
-    const no = votes.filter((v) => !(v.dates || []).includes(d.iso)).map((v) => v.name);
+    const no = going.filter((v) => !(v.dates || []).includes(d.iso)).map((v) => v.name);
     const detail = el('div', { className: 'names hidden', textContent: no.length ? `안 되는 사람: ${no.join(', ')}` : '투표한 사람 모두 돼요' });
     const best = n && d.yes.length === n ? '모두 가능' : (top && d.yes.length === top ? '최다' : '');
     const row = barRow(`${md} (${dow})`, d.yes.length, n, detail, best);
@@ -409,7 +432,7 @@ function renderResult() {
   const rc = $('r-classes'); rc.replaceChildren();
   const scored = CLASSES.map((c) => {
     let score = 0, first = 0;
-    for (const v of votes) {
+    for (const v of going) {
       const i = (v.classes || []).indexOf(c.key);
       if (i >= 0) score += 3 - i;
       if (i === 0) first++;
@@ -426,7 +449,7 @@ function renderResult() {
 
   // 지역
   const counts = new Map();
-  for (const v of votes) for (const r of v.regions || []) counts.set(r, (counts.get(r) || 0) + 1);
+  for (const v of going) for (const r of v.regions || []) counts.set(r, (counts.get(r) || 0) + 1);
   const rr = $('r-regions'); rr.replaceChildren();
   const regs = [...counts.entries()].sort((a, b) => b[1] - a[1]);
   if (!regs.length) rr.append(el('p', { className: 'muted', textContent: '아직 없어요.' }));
