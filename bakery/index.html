@@ -179,7 +179,7 @@
       <div class="cmp-row">
         <span class="tag">2</span>
         <div class="who"><b>셀갸또</b><span>서울역 13번 출구 · 1시간 30분</span></div>
-        <div class="price"><b>5~8만</b>12명 60~96만</div>
+        <div class="price"><b>5~8만</b>금액 조정 협의 중</div>
       </div>
       <div class="cmp-row">
         <span class="tag">3</span>
@@ -218,7 +218,7 @@
       <dt>진행 방식</dt><dd>케이크는 1인 1개. 크림 만들기 → 아이싱 → 데코레이션 순서예요.</dd>
       <dt>소요 시간</dt><dd>1시간 30분</dd>
     </dl>
-    <p class="note">생과일 케이크는 예산보다 1인 1만 원 넘어요.</p>
+    <p class="note">사장님: 금액은 맞춰주실 수 있대요. 지금 협의 중이에요.</p>
     <div class="links">
       <a href="https://map.naver.com/p/search/%EC%85%80%EA%B0%B8%EB%98%90" target="_blank" rel="noopener">네이버 지도</a>
       <a href="https://m.blog.naver.com/selgateaubakingcalss/224424651685" target="_blank" rel="noopener">공방 블로그 1</a>
@@ -321,7 +321,7 @@ const VENDORS = [
     { key: '에그타르트', price: 37900 },
     { key: '두쫀쿠', price: 44900 },
   ]},
-  { key: 'selgateau', name: '셀갸또', where: '서울역', x: 680, y: 246, classes: [
+  { key: 'selgateau', name: '셀갸또', where: '서울역', x: 680, y: 246, negotiable: true, classes: [
     { key: '구움과자(르뱅·스콘)', price: 50000 },
     { key: '레드벨벳/초코 케이크', price: 70000 },
     { key: '생과일 케이크', price: 80000 },
@@ -397,7 +397,9 @@ function renderClasses() {
   const box = $('classes'); box.replaceChildren();
   if (!v) return;
   for (const c of v.classes) {
-    const fit = el('span', { className: 'fit ' + (c.price <= BUDGET ? 'in' : 'out'), textContent: c.price <= BUDGET ? '예산 안' : '예산 초과' });
+    // 사장님이 금액을 맞춰주겠다고 한 곳은 '예산 초과' 대신 '협의 중'으로 둔다.
+    const inBudget = c.price <= BUDGET;
+    const fit = el('span', { className: 'fit ' + (inBudget ? 'in' : 'out'), textContent: inBudget ? '예산 안' : (v.negotiable ? '금액 협의 중' : '예산 초과') });
     const left = el('span', {}, c.key, fit);
     if (c.note) left.append(el('small', { textContent: c.note }));
     const b = el('button', { className: 'chip opt' + (state.cls === c.key ? ' on' : '') }, left, el('span', { className: 'price num', textContent: won(c.price) }));
