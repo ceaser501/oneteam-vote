@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>6조 베이킹 후보 3곳</title>
+<meta name="theme-color" content="#b4385a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+  /* 폰 한 손 화면 기준: 지도 → 한눈 비교 → 곳별 카드 → 투표 → 결과 → 일정·예산 */
+  :root {
+    --bg: #faf7f4; --surface: #ffffff; --ink: #2b211c; --muted: #76675e; --line: #eadfd6;
+    --accent: #b4385a; --accent-soft: #f8e6ec; --ok: #2f7d4a; --ok-soft: #e4f2e8; --warn: #b45309;
+    --land: #f2ece5; --river: #cfe1ec;
+    --l2: #33a14a; --l6: #b0601f; --l1: #23449e; --arex: #3f9bd6;
+    --on-accent: #ffffff;
+    --f-display: "Gowun Batang", "Noto Serif KR", serif;
+    --f-body: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1513; --surface: #241d1a; --ink: #f3ebe6; --muted: #b3a49b; --line: #3a302b;
+      --accent: #ec7b9a; --accent-soft: #3d2129; --ok: #6fcf8f; --ok-soft: #1f3327; --warn: #f0a55a;
+      --land: #2a2320; --river: #23394a;
+      --l2: #5cc46f; --l6: #d98a4a; --l1: #7f9bea; --arex: #6dbbe9;
+      --on-accent: #1a1513; color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 17px; line-height: 1.55; word-break: keep-all; }
+  .wrap { max-width: 560px; margin: 0 auto; padding-inline: 16px; padding-block: 20px 120px; display: grid; gap: 22px; }
+  h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; }
+  h1 { font-size: 26px; line-height: 1.3; }
+  h2 { font-size: 22px; }
+  h3 { font-size: 20px; }
+  .lede, .hint { color: var(--muted); margin: 4px 0 0; font-size: 15px; }
+  a { color: var(--accent); }
+  .num { font-variant-numeric: tabular-nums; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px 16px; display: grid; gap: 12px; min-width: 0; }
+  .sec-title { display: grid; gap: 2px; }
+
+  /* 지도 */
+  .map { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+  .map svg { display: block; width: 100%; height: auto; }
+  .map .cap { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 10px 14px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); }
+  .map .cap i { display: inline-block; width: 14px; height: 4px; border-radius: 2px; vertical-align: 3px; margin-right: 5px; }
+  .st { font-size: 19px; fill: var(--muted); font-family: var(--f-body); }
+  .pin-label { font: 700 24px var(--f-body); fill: var(--on-accent); }
+
+  /* 한눈 비교 */
+  .cmp { display: grid; gap: 0; }
+  .cmp-row { display: grid; grid-template-columns: 32px 1fr auto; gap: 4px 10px; padding: 12px 0; border-bottom: 1px solid var(--line); align-items: start; }
+  .cmp-row:last-child { border-bottom: 0; }
+  .cmp-row .who b { font-size: 17px; }
+  .cmp-row .who span { display: block; font-size: 14px; color: var(--muted); }
+  .cmp-row .price { text-align: right; font-size: 15px; }
+  .cmp-row .price b { display: block; font-size: 17px; }
+  .tag { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 15px; }
+
+  /* 곳별 카드 */
+  .card header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .where { color: var(--muted); font-size: 15px; }
+  .menu { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .menu li { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
+  .menu li:last-child { border-bottom: 0; padding-bottom: 0; }
+  .menu small { color: var(--muted); }
+  .kv { display: grid; gap: 2px; }
+  .kv dt { color: var(--muted); font-size: 14px; }
+  .kv dd { margin: 0 0 8px; }
+  .note { background: var(--accent-soft); border-radius: 10px; padding: 10px 12px; font-size: 15px; margin: 0; }
+  .links { display: flex; flex-wrap: wrap; gap: 8px; }
+  .links a { text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; font-size: 15px; background: var(--bg); }
+  .fit { font-size: 12px; font-weight: 700; padding: 1px 7px; border-radius: 8px; margin-left: 6px; white-space: nowrap; }
+  .fit.in { background: var(--ok-soft); color: var(--ok); }
+  .fit.out { background: var(--accent-soft); color: var(--accent); }
+
+  /* 투표 */
+  .grid { display: grid; gap: 8px; }
+  .g3 { grid-template-columns: repeat(3, 1fr); }
+  .chip { font: inherit; font-size: 17px; min-height: 52px; padding: 8px 6px; border-radius: 12px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); position: relative; text-align: center; }
+  .chip small { display: block; font-size: 13px; color: var(--muted); line-height: 1.25; }
+  .chip.on { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+  .chip.on::after { content: "✓"; position: absolute; top: 4px; right: 8px; font-size: 14px; color: var(--accent); }
+  .opt { text-align: left; padding: 12px 40px 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .opt .price { font-size: 15px; white-space: nowrap; }
+  .step { display: grid; gap: 10px; }
+  .step h3 { display: flex; align-items: center; gap: 8px; font-family: var(--f-body); font-size: 18px; }
+  .step h3 .n { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: var(--bg); font-size: 14px; }
+  .msg { margin: 0; font-size: 15px; color: var(--ok); font-weight: 700; }
+  .msg.err { color: var(--accent); }
+  .submit-bar { position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); background: linear-gradient(transparent, var(--bg) 35%); z-index: 5; }
+  .submit-bar button { display: block; width: 100%; max-width: 528px; margin: 0 auto; font: inherit; font-size: 19px; font-weight: 700; padding: 15px; border-radius: 14px; border: 0; background: var(--accent); color: var(--on-accent); }
+  .submit-bar button:disabled { opacity: .45; }
+
+  /* 결과 */
+  .big { font-size: 30px; font-weight: 700; }
+  .names { font-size: 14px; color: var(--muted); }
+  .bar-row { display: grid; gap: 4px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .bar-row:last-child { border-bottom: 0; }
+  .bar-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .bar { height: 12px; background: var(--land); border-radius: 6px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--accent); border-radius: 6px; }
+  .sub-bars { display: grid; gap: 4px; padding-left: 12px; border-left: 2px solid var(--line); margin-top: 4px; }
+  .sub-bars .bar-head { font-size: 15px; }
+  .sub-bars .bar { height: 8px; }
+  .sub-bars .bar i { background: var(--muted); }
+  .badge { font-size: 12px; background: var(--accent); color: var(--on-accent); padding: 1px 8px; border-radius: 10px; margin-left: 6px; font-weight: 700; }
+  .live { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); margin-right: 6px; vertical-align: 2px; }
+
+  /* 일정·예산 */
+  .sched { list-style: none; margin: 0; padding: 0; display: grid; }
+  .sched li { display: grid; grid-template-columns: 112px 1fr; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .sched li:last-child { border-bottom: 0; }
+  .sched time { font-weight: 700; }
+  .sched li.main { color: var(--accent); }
+  .budget { display: grid; grid-template-columns: 7fr 2fr 1fr; height: 40px; border-radius: 10px; overflow: hidden; font-size: 14px; font-weight: 700; }
+  .budget span { display: grid; place-items: center; color: var(--on-accent); }
+  .budget-legend { display: flex; justify-content: space-between; font-size: 15px; }
+  .fine { color: var(--muted); font-size: 14px; margin: 0; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>6조 원데이 클래스<br>베이킹 후보 3곳</h1>
+    <p class="lede">사장님 답변과 네이버 검색으로 모았어요. 보고 아래에서 투표해주세요.</p>
+  </header>
+
+  <!-- 지도: 역 좌표로 직접 그린 약도. 핀은 안내받은 출구 근처의 대략 위치다.
+       정확한 위치는 각 카드의 네이버 지도 링크로 본다. -->
+  <figure class="map">
+    <svg viewBox="40 90 800 420" role="img" aria-labelledby="map-title">
+      <title id="map-title">상수역, 홍대입구역, 서울역 근처 세 곳의 위치</title>
+      <rect x="0" y="0" width="850" height="520" fill="var(--land)"/>
+      <path d="M-10 300 L100 384 L200 441 L350 504 L420 540 L-10 540 Z" fill="var(--river)"/>
+      <text x="70" y="470" class="st">한강</text>
+      <polyline points="20,507 139,320 245,224 369,249 460,230 563,218 636,189 769,117 860,105" fill="none" stroke="var(--l2)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      <polyline points="139,320 228,343 320,348 425,343 516,391 615,454 700,500" fill="none" stroke="var(--l6)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <polyline points="245,224 516,391 707,256" fill="none" stroke="var(--arex)" stroke-width="4" stroke-dasharray="10 6" stroke-linecap="round" stroke-linejoin="round"/>
+      <polyline points="769,117 707,256 714,426 700,530" fill="none" stroke="var(--l1)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <g fill="var(--surface)" stroke="var(--ink)" stroke-width="2">
+        <circle cx="139" cy="320" r="5"/><circle cx="245" cy="224" r="6"/><circle cx="369" cy="249" r="5"/>
+        <circle cx="460" cy="230" r="5"/><circle cx="636" cy="189" r="5"/><circle cx="769" cy="117" r="5"/>
+        <circle cx="228" cy="343" r="6"/><circle cx="516" cy="391" r="5"/><circle cx="707" cy="256" r="6"/>
+      </g>
+      <text x="100" y="345" class="st">합정</text>
+      <text x="236" y="250" class="st" text-anchor="end">홍대입구</text>
+      <text x="372" y="275" class="st">신촌</text>
+      <text x="452" y="256" class="st">이대</text>
+      <text x="626" y="176" class="st" text-anchor="end">충정로</text>
+      <text x="780" y="140" class="st">시청</text>
+      <text x="200" y="370" class="st">상수</text>
+      <text x="528" y="410" class="st">공덕</text>
+      <text x="720" y="280" class="st">서울역</text>
+      <g id="pins"></g>
+    </svg>
+    <figcaption class="cap">
+      <span><i style="background:var(--l2)"></i>2호선</span>
+      <span><i style="background:var(--l6)"></i>6호선</span>
+      <span><i style="background:var(--l1)"></i>1호선</span>
+      <span><i style="background:var(--arex)"></i>공항철도·경의선</span>
+      <span>핀은 대략 위치예요.</span>
+    </figcaption>
+  </figure>
+
+  <!-- 한눈 비교 -->
+  <section class="card">
+    <div class="sec-title"><h2>한눈에 비교</h2><p class="hint">클래스 예산은 1인 7만 원이에요. 12명 기준.</p></div>
+    <div class="cmp num">
+      <div class="cmp-row">
+        <span class="tag">1</span>
+        <div class="who"><b>베이크미유</b><span>상수역 1번 출구 · 1시간~1시간 30분</span></div>
+        <div class="price"><b>3.4~4.5만</b>12명 80만 제안</div>
+      </div>
+      <div class="cmp-row">
+        <span class="tag">2</span>
+        <div class="who"><b>셀갸또</b><span>서울역 13번 출구 · 1시간 30분</span></div>
+        <div class="price"><b>5~8만</b>12명 60~96만</div>
+      </div>
+      <div class="cmp-row">
+        <span class="tag">3</span>
+        <div class="who"><b>연플레이스</b><span>홍대입구역 5번 출구 · 1시간 30분</span></div>
+        <div class="price"><b>3.7~4만</b>12명 44~48만</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 곳별 카드 -->
+  <article class="card" id="v-bakemiyu">
+    <header><span class="tag">1</span><h2>베이크미유</h2><span class="where">상수역 1번 출구</span></header>
+    <ul class="menu num">
+      <li><span>쿠키류</span><span>33,900원</span></li>
+      <li><span>휘낭시에 · 티그레</span><span>34,900원</span></li>
+      <li><span>에그타르트</span><span>37,900원</span></li>
+      <li><span>두쫀쿠</span><span>44,900원</span></li>
+    </ul>
+    <dl class="kv"><dt>소요 시간</dt><dd>평균 1시간 ~ 1시간 30분</dd></dl>
+    <p class="note">사장님: 휘낭시에 + 에그타르트를 같이 하면 <b>12명 80만 원</b>(1인 약 66,700원)에 맞춰주신대요. 따로 내면 873,600원이에요.</p>
+    <div class="links">
+      <a href="https://map.naver.com/p/entry/place/2077411871" target="_blank" rel="noopener">네이버 지도</a>
+      <a href="https://map.naver.com/p/entry/place/2077411871?placePath=/review" target="_blank" rel="noopener">방문자 리뷰</a>
+      <a href="https://search.naver.com/search.naver?ssc=tab.blog.all&query=%EB%B2%A0%EC%9D%B4%ED%81%AC%EB%AF%B8%EC%9C%A0%20%ED%81%B4%EB%9E%98%EC%8A%A4%20%ED%9B%84%EA%B8%B0" target="_blank" rel="noopener">블로그 후기</a>
+    </div>
+  </article>
+
+  <article class="card" id="v-selgateau">
+    <header><span class="tag">2</span><h2>셀갸또</h2><span class="where">서울역 13번 출구</span></header>
+    <ul class="menu num">
+      <li><span>구움과자 <small>르뱅쿠키 2종 / 스콘 2종</small></span><span>50,000원</span></li>
+      <li><span>1호 레드벨벳 / 초코 케이크</span><span>70,000원</span></li>
+      <li><span>1호 생과일 케이크</span><span>80,000원</span></li>
+    </ul>
+    <dl class="kv">
+      <dt>진행 방식</dt><dd>케이크는 1인 1개. 크림 만들기 → 아이싱 → 데코레이션 순서예요.</dd>
+      <dt>소요 시간</dt><dd>1시간 30분</dd>
+    </dl>
+    <p class="note">생과일 케이크는 예산보다 1인 1만 원 넘어요.</p>
+    <div class="links">
+      <a href="https://map.naver.com/p/search/%EC%85%80%EA%B0%B8%EB%98%90" target="_blank" rel="noopener">네이버 지도</a>
+      <a href="https://m.blog.naver.com/selgateaubakingcalss/224424651685" target="_blank" rel="noopener">공방 블로그 1</a>
+      <a href="https://m.blog.naver.com/selgateaubakingcalss/224076824070" target="_blank" rel="noopener">공방 블로그 2</a>
+      <a href="https://search.naver.com/search.naver?ssc=tab.blog.all&query=%EC%85%80%EA%B0%B8%EB%98%90%20%ED%81%B4%EB%9E%98%EC%8A%A4%20%ED%9B%84%EA%B8%B0" target="_blank" rel="noopener">블로그 후기</a>
+    </div>
+  </article>
+
+  <article class="card" id="v-yeonplace">
+    <header><span class="tag">3</span><h2>연플레이스 신촌점</h2><span class="where">홍대입구역 5번 출구</span></header>
+    <ul class="menu num">
+      <li><span>곰돌이 마들렌 6개</span><span>39,000원</span></li>
+      <li><span>빼빼로 휘낭시에 6개</span><span>37,000원</span></li>
+      <li><span>식빵 휘낭시에 8개</span><span>37,000원</span></li>
+      <li><span>르뱅쿠키 6개</span><span>40,000원</span></li>
+      <li><span>에그타르트 6개</span><span>39,000원</span></li>
+    </ul>
+    <dl class="kv">
+      <dt>포함</dt><dd>재료비, 도구·앞치마, 포장, 진행비. 마들렌·휘낭시에는 아이싱 + 초코펜 1개 포함.</dd>
+      <dt>소요 시간</dt><dd>1시간 30분</dd>
+    </dl>
+    <p class="note">예약 페이지 기본 상품은 아이싱·초코펜이 빠진 가격이에요. 예약할 때 포함으로 골라야 해요.</p>
+    <div class="links">
+      <a href="https://map.naver.com/p/entry/place/2018237824" target="_blank" rel="noopener">네이버 지도</a>
+      <a href="https://map.naver.com/p/entry/place/2018237824?placePath=/review" target="_blank" rel="noopener">방문자 리뷰</a>
+      <a href="https://search.naver.com/search.naver?ssc=tab.blog.all&query=%EC%97%B0%ED%94%8C%EB%A0%88%EC%9D%B4%EC%8A%A4%20%EB%B2%A0%EC%9D%B4%ED%82%B9%20%ED%9B%84%EA%B8%B0" target="_blank" rel="noopener">블로그 후기</a>
+    </div>
+  </article>
+
+  <!-- 투표 -->
+  <section class="card" id="vote">
+    <div class="sec-title"><h2>투표하기</h2><p class="hint">다시 하면 바뀌어요.</p></div>
+    <div class="step">
+      <h3><span class="n">1</span>이름</h3>
+      <div id="names" class="grid g3"></div>
+    </div>
+    <div class="step">
+      <h3><span class="n">2</span>가고 싶은 곳</h3>
+      <div id="vendors" class="grid g3"></div>
+    </div>
+    <div class="step" id="class-step">
+      <h3><span class="n">3</span>하고 싶은 클래스</h3>
+      <div id="classes" class="grid"></div>
+    </div>
+    <p id="submit-msg" class="msg hidden"></p>
+  </section>
+
+  <!-- 결과 -->
+  <section class="card" id="result">
+    <div class="sec-title"><h2>투표 결과</h2><p class="hint"><span class="live"></span>실시간으로 바뀌어요</p></div>
+    <div class="big num"><span id="r-count">0</span> / <span id="r-total">13</span>명</div>
+    <p class="names" id="r-missing"></p>
+    <div id="r-vendors"></div>
+  </section>
+
+  <!-- 일정·예산 -->
+  <section class="card">
+    <div class="sec-title"><h2>예상 일정</h2><p class="hint">바뀔 수 있어요.</p></div>
+    <ol class="sched num">
+      <li><time>10:30</time><span>집결지 도착</span></li>
+      <li><time>11:00 – 13:00</time><span>점심 식사</span></li>
+      <li class="main"><time>13:00 – 14:30</time><span>원데이 클래스</span></li>
+      <li><time>14:30 – 15:30</time><span>티타임</span></li>
+      <li><time>15:30</time><span>퇴근</span></li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <div class="sec-title"><h2>예산</h2><p class="hint">1인 10만 원이에요.</p></div>
+    <div class="budget num" aria-hidden="true">
+      <span style="background:var(--accent)">클래스 7만</span>
+      <span style="background:var(--l6)">점심 2만</span>
+      <span style="background:var(--muted)">1만</span>
+    </div>
+    <p class="fine">원데이 클래스 7만 원 + 점심 2만 원 + 커피 1만 원</p>
+  </section>
+</div>
+
+<div class="submit-bar" id="submit-bar">
+  <button id="submit" disabled>이름을 먼저 골라주세요</button>
+</div>
+
+<script type="module">
+// 베이킹 업체·클래스 투표. 로그인 없이 QR로 들어와 쓰는 페이지라 anon 키로
+// oneteam_picks 표를 직접 읽고 쓴다. 표와 접근 규칙: bakery.sql
+const SUPABASE_URL = 'https://gxyckkinlygeasruapmj.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable__NKAf1NZsOddwbkgqYGTbw_Smez0lcv';
+
+// 날짜 투표(../index.html)와 같은 명단. bakery.sql의 check 목록과 같아야 한다.
+const MEMBERS = ['최주열','금봉수','박선애','차슬기','김은화','전승훈',
+                 '김태수','김동훈','박순영','김인규','김수연','성우현','최재훈'];
+
+// 클래스 예산은 1인 7만 원. price가 이보다 크면 '예산 초과'를 붙인다.
+const BUDGET = 70000;
+const VENDORS = [
+  { key: 'bakemiyu', name: '베이크미유', where: '상수역', x: 224, y: 326, classes: [
+    { key: '휘낭시에+에그타르트', price: 66700, note: '12명 80만 원 제안' },
+    { key: '쿠키류', price: 33900 },
+    { key: '휘낭시에·티그레', price: 34900 },
+    { key: '에그타르트', price: 37900 },
+    { key: '두쫀쿠', price: 44900 },
+  ]},
+  { key: 'selgateau', name: '셀갸또', where: '서울역', x: 680, y: 246, classes: [
+    { key: '구움과자(르뱅·스콘)', price: 50000 },
+    { key: '레드벨벳/초코 케이크', price: 70000 },
+    { key: '생과일 케이크', price: 80000 },
+  ]},
+  { key: 'yeonplace', name: '연플레이스', where: '홍대입구역', x: 266, y: 232, classes: [
+    { key: '곰돌이 마들렌', price: 39000 },
+    { key: '빼빼로 휘낭시에', price: 37000 },
+    { key: '식빵 휘낭시에', price: 37000 },
+    { key: '르뱅쿠키', price: 40000 },
+    { key: '에그타르트', price: 39000 },
+  ]},
+];
+const vendorOf = (k) => VENDORS.find((v) => v.key === k);
+
+const $ = (id) => document.getElementById(id);
+const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); for (const k of kids) e.append(k); return e; };
+const won = (n) => n.toLocaleString('ko-KR') + '원';
+
+// ===================== 지도 핀 =====================
+// 이름표 폭을 글자 길이에 맞추려고 스크립트로 그린다.
+{
+  const NS = 'http://www.w3.org/2000/svg';
+  const mk = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+  VENDORS.forEach((v, i) => {
+    const label = `${i + 1} ${v.name}`;
+    const w = label.length * 25 + 30, h = 42, top = v.y - 72;
+    const a = mk('a', { href: `#v-${v.key}` });
+    a.append(
+      mk('rect', { x: v.x - w / 2, y: top, width: w, height: h, rx: 21, fill: 'var(--accent)' }),
+      mk('path', { d: `M${v.x - 7} ${top + h - 1} L${v.x} ${v.y - 12} L${v.x + 7} ${top + h - 1} Z`, fill: 'var(--accent)' }),
+      mk('circle', { cx: v.x, cy: v.y, r: 11, fill: 'var(--accent)', stroke: 'var(--surface)', 'stroke-width': 3 }),
+    );
+    const t = mk('text', { x: v.x, y: top + 29, 'text-anchor': 'middle', class: 'pin-label' });
+    t.textContent = label;
+    a.append(t);
+    $('pins').append(a);
+  });
+}
+
+// ===================== 투표 =====================
+const state = { name: null, vendor: null, cls: null };
+let picks = [];
+let sb = null;
+
+function renderNames() {
+  const box = $('names'); box.replaceChildren();
+  for (const n of MEMBERS) {
+    const b = el('button', { className: 'chip' + (state.name === n ? ' on' : '') }, n);
+    if (picks.some((p) => p.name === n)) b.append(el('small', { textContent: '투표함' }));
+    b.onclick = () => {
+      state.name = n;
+      const mine = picks.find((p) => p.name === n);
+      if (mine) { state.vendor = mine.vendor; state.cls = mine.class; }
+      render();
+    };
+    box.append(b);
+  }
+}
+
+function renderVendors() {
+  const box = $('vendors'); box.replaceChildren();
+  for (const v of VENDORS) {
+    const b = el('button', { className: 'chip' + (state.vendor === v.key ? ' on' : '') }, v.name, el('small', { textContent: v.where }));
+    // 곳을 바꾸면 클래스는 다시 고른다. 다른 곳의 메뉴가 남아 있으면 안 된다.
+    b.onclick = () => { if (state.vendor !== v.key) state.cls = null; state.vendor = v.key; render(); };
+    box.append(b);
+  }
+}
+
+function renderClasses() {
+  const v = vendorOf(state.vendor);
+  $('class-step').classList.toggle('hidden', !v);
+  const box = $('classes'); box.replaceChildren();
+  if (!v) return;
+  for (const c of v.classes) {
+    const fit = el('span', { className: 'fit ' + (c.price <= BUDGET ? 'in' : 'out'), textContent: c.price <= BUDGET ? '예산 안' : '예산 초과' });
+    const left = el('span', {}, c.key, fit);
+    if (c.note) left.append(el('small', { textContent: c.note }));
+    const b = el('button', { className: 'chip opt' + (state.cls === c.key ? ' on' : '') }, left, el('span', { className: 'price num', textContent: won(c.price) }));
+    b.onclick = () => { state.cls = c.key; render(); };
+    box.append(b);
+  }
+}
+
+function missing() {
+  if (!state.name) return '이름을 먼저 골라주세요';
+  if (!state.vendor) return '가고 싶은 곳을 골라주세요';
+  if (!state.cls) return '클래스를 골라주세요';
+  return null;
+}
+
+function renderSubmit() {
+  const m = missing();
+  $('submit').disabled = !!m || !sb;
+  $('submit').textContent = m || (picks.some((p) => p.name === state.name) ? '다시 내기' : '투표하기');
+}
+
+function render() { renderNames(); renderVendors(); renderClasses(); renderSubmit(); renderResult(); }
+
+$('submit').onclick = async () => {
+  if (missing() || !sb) return;
+  const btn = $('submit'); btn.disabled = true; btn.textContent = '보내는 중…';
+  const row = { name: state.name, vendor: state.vendor, class: state.cls, updated_at: new Date().toISOString() };
+  const { error } = await sb.from('oneteam_picks').upsert(row, { onConflict: 'name' });
+  const msg = $('submit-msg'); msg.classList.remove('hidden');
+  if (error) {
+    console.error(error);
+    msg.className = 'msg err'; msg.textContent = '못 보냈어요. 다시 눌러주세요.';
+    renderSubmit();
+    return;
+  }
+  msg.className = 'msg'; msg.textContent = '고마워요! 결과에 반영됐어요.';
+  await load();
+  $('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+// ===================== 결과 =====================
+function barRow(title, count, total, badge, extra) {
+  const pct = total ? Math.round((count / total) * 100) : 0;
+  const t = el('b', { textContent: title });
+  if (badge) t.append(el('span', { className: 'badge', textContent: badge }));
+  const row = el('div', { className: 'bar-row' },
+    el('div', { className: 'bar-head' }, t, el('span', { className: 'num', textContent: `${count}명` })),
+    el('div', { className: 'bar' }, Object.assign(el('i'), { style: `width:${pct}%` })));
+  if (extra) row.append(extra);
+  return row;
+}
+
+function renderResult() {
+  const n = picks.length;
+  $('r-count').textContent = n;
+  $('r-total').textContent = MEMBERS.length;
+  const left = MEMBERS.filter((m) => !picks.some((p) => p.name === m));
+  $('r-missing').textContent = left.length ? `아직: ${left.join(', ')}` : '모두 투표했어요!';
+
+  const rows = VENDORS.map((v) => ({ v, mine: picks.filter((p) => p.vendor === v.key) }))
+    .sort((a, b) => b.mine.length - a.mine.length);
+  const top = rows[0]?.mine.length || 0;
+  const box = $('r-vendors'); box.replaceChildren();
+  for (const { v, mine } of rows) {
+    // 곳 아래에 그 곳을 고른 사람들의 클래스 표를 붙인다. 표가 없는 메뉴는 감춘다.
+    const sub = el('div', { className: 'sub-bars' });
+    const counts = v.classes.map((c) => ({ c, who: mine.filter((p) => p.class === c.key).map((p) => p.name) }))
+      .filter((x) => x.who.length).sort((a, b) => b.who.length - a.who.length);
+    for (const { c, who } of counts) sub.append(barRow(c.key, who.length, mine.length, '', el('div', { className: 'names', textContent: who.join(', ') })));
+    box.append(barRow(v.name, mine.length, n, top && mine.length === top ? '1위' : '', counts.length ? sub : null));
+  }
+}
+
+// ===================== 데이터 =====================
+async function load() {
+  const { data, error } = await sb.from('oneteam_picks').select('*');
+  if (error) { console.error(error); return; }
+  picks = (data || []).filter((p) => MEMBERS.includes(p.name));
+  render();
+}
+
+async function init() {
+  render();
+  const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+  sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } });
+  await load();
+  // 누가 투표하면 바로 반영. 실시간 연결이 끊겨도 멈추지 않게 20초마다 한 번 더 읽는다.
+  sb.channel('picks').on('postgres_changes', { event: '*', schema: 'public', table: 'oneteam_picks' }, load).subscribe();
+  setInterval(load, 20000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+}
+init();
+</script>
+</body>
+</html>
