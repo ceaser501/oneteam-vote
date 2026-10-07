@@ -85,7 +85,9 @@
   .chip.on { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
   .chip.on::after { content: "✓"; position: absolute; top: 4px; right: 8px; font-size: 14px; color: var(--accent); }
   .opt { text-align: left; padding: 12px 40px 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .opt > span:first-child { min-width: 0; }
   .opt .price { font-size: 15px; white-space: nowrap; }
+  #classes { grid-template-columns: minmax(0, 1fr); }
   .step { display: grid; gap: 10px; }
   .step h3 { display: flex; align-items: center; gap: 8px; font-family: var(--f-body); font-size: 18px; }
   .step h3 .n { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: var(--bg); font-size: 14px; }
@@ -148,7 +150,7 @@
         <circle cx="228" cy="343" r="6"/><circle cx="516" cy="391" r="5"/><circle cx="707" cy="256" r="6"/>
       </g>
       <text x="100" y="345" class="st">합정</text>
-      <text x="236" y="250" class="st" text-anchor="end">홍대입구</text>
+      <text x="256" y="250" class="st">홍대입구</text>
       <text x="372" y="275" class="st">신촌</text>
       <text x="452" y="256" class="st">이대</text>
       <text x="626" y="176" class="st" text-anchor="end">충정로</text>
@@ -183,8 +185,8 @@
       </div>
       <div class="cmp-row">
         <span class="tag">3</span>
-        <div class="who"><b>연플레이스</b><span>홍대입구역 5번 출구 · 1시간 30분</span></div>
-        <div class="price"><b>3.7~4만</b>12명 44~48만</div>
+        <div class="who"><b>맘보 제과제빵학원</b><span>홍대입구역 9번 출구 · 최대 3시간</span></div>
+        <div class="price"><b>5만</b>12명 60만</div>
       </div>
     </div>
   </section>
@@ -227,24 +229,34 @@
     </div>
   </article>
 
-  <article class="card" id="v-yeonplace">
-    <header><span class="tag">3</span><h2>연플레이스 신촌점</h2><span class="where">홍대입구역 5번 출구</span></header>
-    <ul class="menu num">
-      <li><span>곰돌이 마들렌 6개</span><span>39,000원</span></li>
-      <li><span>빼빼로 휘낭시에 6개</span><span>37,000원</span></li>
-      <li><span>식빵 휘낭시에 8개</span><span>37,000원</span></li>
-      <li><span>르뱅쿠키 6개</span><span>40,000원</span></li>
-      <li><span>에그타르트 6개</span><span>39,000원</span></li>
-    </ul>
+  <article class="card" id="v-mambo">
+    <header><span class="tag">3</span><h2>맘보 바리스타 제과제빵학원 홍대점</h2><span class="where">홍대입구역 9번 출구</span></header>
     <dl class="kv">
-      <dt>포함</dt><dd>재료비, 도구·앞치마, 포장, 진행비. 마들렌·휘낭시에는 아이싱 + 초코펜 1개 포함.</dd>
-      <dt>소요 시간</dt><dd>1시간 30분</dd>
+      <dt>비용</dt><dd class="num">1인 <b>50,000원</b> (부가세 포함) · 12명 600,000원</dd>
+      <dt>소요 시간</dt><dd>최대 3시간 (품목마다 2~3시간)</dd>
     </dl>
-    <p class="note">예약 페이지 기본 상품은 아이싱·초코펜이 빠진 가격이에요. 예약할 때 포함으로 골라야 해요.</p>
+    <ul class="menu num">
+      <li><span>휘낭시에 2종 <small>플레인, 츄러스, 크림치즈, 넛츠카라멜</small></span><span>1인 20~24개 · 2~3시간</span></li>
+      <li><span>쿠키 2종 <small>초코칩, 피넛버터 / 레드벨벳, 스모어, 황치즈</small></span><span>1인 14~16개 · 2~3시간</span></li>
+      <li><span>마들렌 2종 <small>레몬, 초코, 황치즈, 로투스</small></span><span>1인 20~24개 · 2~3시간</span></li>
+      <li><span>스콘 2종 <small>레몬바질, 다크초코, 콘치즈, 카라멜통밀</small></span><span>1인 12개 · 2~3시간</span></li>
+      <li><span>미니파운드케이크 <small>녹차초코, 레몬</small></span><span>1인 4개 · 3시간</span></li>
+      <li><span>매론빵</span><span>1인 5개 · 3시간</span></li>
+      <li><span>소금빵</span><span>1인 6~7개 · 3시간</span></li>
+      <li><span>초코로티번</span><span>1인 5개 · 3시간</span></li>
+      <li><span>콘치즈브레드</span><span>1인 8개 · 3시간</span></li>
+      <li><span>3색 스노우볼 쿠키</span><span>2~3시간</span></li>
+      <li><span>생크림 카스텔라 <small>바닐라, 딸기</small></span><span>2~3시간</span></li>
+      <li><span>머핀 <small>블루베리, 레몬</small></span><span>2~3시간</span></li>
+      <li><span>사브레 <small>코코넛, 녹차, 초코</small></span><span>2~3시간</span></li>
+      <li><span>소보로빵</span><span>1인 6개 · 3시간</span></li>
+      <li><span>단팥빵</span><span>1인 6개 · 3시간</span></li>
+    </ul>
+    <p class="note">12명 모두 같은 품목으로 맞춰야 해요. 최대 정원은 12명이에요.</p>
     <div class="links">
-      <a href="https://map.naver.com/p/entry/place/2018237824" target="_blank" rel="noopener">네이버 지도</a>
-      <a href="https://map.naver.com/p/entry/place/2018237824?placePath=/review" target="_blank" rel="noopener">방문자 리뷰</a>
-      <a href="https://search.naver.com/search.naver?ssc=tab.blog.all&query=%EC%97%B0%ED%94%8C%EB%A0%88%EC%9D%B4%EC%8A%A4%20%EB%B2%A0%EC%9D%B4%ED%82%B9%20%ED%9B%84%EA%B8%B0" target="_blank" rel="noopener">블로그 후기</a>
+      <a href="https://map.naver.com/p/entry/place/1055140104" target="_blank" rel="noopener">네이버 지도</a>
+      <a href="https://map.naver.com/p/entry/place/1055140104?placePath=/review" target="_blank" rel="noopener">방문자 리뷰</a>
+      <a href="https://search.naver.com/search.naver?ssc=tab.blog.all&query=%EB%A7%98%EB%B3%B4%20%EC%A0%9C%EA%B3%BC%EC%A0%9C%EB%B9%B5%20%ED%99%8D%EB%8C%80%20%EC%9B%90%EB%8D%B0%EC%9D%B4%ED%81%B4%EB%9E%98%EC%8A%A4" target="_blank" rel="noopener">블로그 후기</a>
     </div>
   </article>
 
@@ -326,12 +338,22 @@ const VENDORS = [
     { key: '에그타르트', price: 37900 },
     { key: '두쫀쿠', price: 44900 },
   ]},
-  { key: 'yeonplace', name: '연플레이스', where: '홍대입구역', x: 266, y: 232, classes: [
-    { key: '곰돌이 마들렌', price: 39000 },
-    { key: '빼빼로 휘낭시에', price: 37000 },
-    { key: '식빵 휘낭시에', price: 37000 },
-    { key: '르뱅쿠키', price: 40000 },
-    { key: '에그타르트', price: 39000 },
+  { key: 'mambo', name: '맘보', where: '홍대입구역', x: 228, y: 232, classes: [
+    { key: '휘낭시에 2종', price: 50000, note: '플레인, 츄러스, 크림치즈, 넛츠카라멜 · 1인 20~24개 · 2~3시간' },
+    { key: '쿠키 2종', price: 50000, note: '초코칩, 피넛버터 / 레드벨벳, 스모어, 황치즈 · 1인 14~16개 · 2~3시간' },
+    { key: '마들렌 2종', price: 50000, note: '레몬, 초코, 황치즈, 로투스 · 1인 20~24개 · 2~3시간' },
+    { key: '스콘 2종', price: 50000, note: '레몬바질, 다크초코, 콘치즈, 카라멜통밀 · 1인 12개 · 2~3시간' },
+    { key: '미니파운드케이크', price: 50000, note: '녹차초코, 레몬 · 1인 4개 · 3시간' },
+    { key: '매론빵', price: 50000, note: '1인 5개 · 3시간' },
+    { key: '소금빵', price: 50000, note: '1인 6~7개 · 3시간' },
+    { key: '초코로티번', price: 50000, note: '1인 5개 · 3시간' },
+    { key: '콘치즈브레드', price: 50000, note: '1인 8개 · 3시간' },
+    { key: '3색 스노우볼 쿠키', price: 50000, note: '2~3시간' },
+    { key: '생크림 카스텔라', price: 50000, note: '바닐라, 딸기 · 2~3시간' },
+    { key: '머핀', price: 50000, note: '블루베리, 레몬 · 2~3시간' },
+    { key: '사브레', price: 50000, note: '코코넛, 녹차, 초코 · 2~3시간' },
+    { key: '소보로빵', price: 50000, note: '1인 6개 · 3시간' },
+    { key: '단팥빵', price: 50000, note: '1인 6개 · 3시간' },
   ]},
 ];
 const vendorOf = (k) => VENDORS.find((v) => v.key === k);

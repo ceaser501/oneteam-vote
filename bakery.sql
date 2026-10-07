@@ -8,7 +8,7 @@ create table if not exists public.oneteam_picks (
   name        text primary key check (name in (
                 '최주열','금봉수','박선애','차슬기','김은화','전승훈',
                 '김태수','김동훈','박순영','김인규','김수연','성우현','최재훈')),
-  vendor      text not null check (vendor in ('bakemiyu','selgateau','yeonplace')),
+  vendor      text not null check (vendor in ('bakemiyu','selgateau','mambo')),
   class       text not null check (char_length(class) <= 40),
   updated_at  timestamptz not null default now()
 );
