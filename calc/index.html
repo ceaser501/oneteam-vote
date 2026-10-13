@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>원팀 행사 정산</title>
+<meta name="theme-color" content="#5d7a3a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+  /* 폰 한 손 정산표: 위에 전체 합계(남은 돈), 아래로 항목별 카드. 카드마다 결제를 여러 번 적는다. */
+  :root {
+    --bg: #f7f6f1; --surface: #ffffff; --ink: #24261f; --muted: #6c6f63; --line: #e3e2d8;
+    --accent: #5d7a3a; --accent-soft: #eaf0df; --over: #b3412f; --over-soft: #f8e4df;
+    --on-accent: #ffffff;
+    --f-body: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #171914; --surface: #20231c; --ink: #eef0e8; --muted: #a8ad9c; --line: #343829;
+      --accent: #a6c97a; --accent-soft: #2a3420; --over: #f08a76; --over-soft: #3a221d;
+      --on-accent: #171914; color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 17px; line-height: 1.5; word-break: keep-all; }
+  .wrap { max-width: 520px; margin: 0 auto; padding-inline: 16px; padding-block: 16px 48px; display: grid; gap: 16px; }
+  h1 { font-size: 22px; margin: 0; }
+  h2 { font-size: 19px; margin: 0; }
+  .num { font-variant-numeric: tabular-nums; }
+  button { font: inherit; cursor: pointer; }
+  input { font: inherit; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* 전체 합계 */
+  .total { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--accent); color: var(--on-accent); border-radius: 16px; padding: 14px 16px; display: grid; gap: 8px; }
+  .total.over { background: var(--over); }
+  .total .left { font-size: 28px; font-weight: 700; line-height: 1.2; }
+  .total .left small { font-size: 15px; font-weight: 500; opacity: .9; }
+  .total .row { display: flex; justify-content: space-between; gap: 8px; font-size: 15px; opacity: .95; flex-wrap: wrap; }
+  .meter { height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--on-accent) 30%, transparent); overflow: hidden; }
+  .meter i { display: block; height: 100%; background: var(--on-accent); border-radius: 4px; }
+
+  .people { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px; }
+  .stepper { display: flex; align-items: center; gap: 10px; }
+  .stepper button { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font-size: 20px; }
+  .stepper b { min-width: 3ch; text-align: center; font-size: 19px; }
+
+  /* 항목 카드 */
+  .item { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: grid; gap: 10px; }
+  .item header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .item header small { color: var(--muted); font-size: 14px; }
+  .status { display: flex; justify-content: space-between; gap: 8px; font-size: 15px; color: var(--muted); }
+  .status b { color: var(--ink); }
+  .status .ok { color: var(--accent); font-weight: 700; }
+  .status .bad { color: var(--over); font-weight: 700; }
+  .bar { height: 8px; border-radius: 4px; background: var(--accent-soft); overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--accent); }
+  .bar.over i { background: var(--over); }
+
+  .pays { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .pay { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: var(--bg); }
+  .pay .memo { min-width: 0; font-size: 15px; color: var(--muted); overflow-wrap: anywhere; }
+  .pay .amt { font-weight: 700; }
+  .pay .x { border: 0; background: none; color: var(--muted); font-size: 18px; width: 32px; height: 32px; }
+  .rcpt { border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 8px; font-size: 12px; padding: 3px 7px; white-space: nowrap; }
+  .rcpt.on { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); font-weight: 700; }
+
+  .add { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+  .add input { width: 100%; min-width: 0; padding: 12px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font-size: 17px; }
+  .add .amt-in { font-variant-numeric: tabular-nums; }
+  .add button { padding: 0 18px; border-radius: 12px; border: 0; background: var(--accent); color: var(--on-accent); font-weight: 700; }
+  .add input[id^="memo-"] { grid-column: 1 / -1; }
+  .add .preview { grid-column: 1 / -1; font-size: 14px; color: var(--muted); min-height: 1.4em; margin-top: -4px; }
+  .add .preview.err { color: var(--over); }
+
+  .quick { display: flex; flex-wrap: wrap; gap: 6px; }
+  .quick button { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 999px; padding: 5px 12px; font-size: 14px; }
+
+  .tools { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tools button { padding: 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-weight: 500; }
+  .tools .danger { color: var(--over); }
+  .confirm { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; justify-content: space-between; background: var(--over-soft); border-radius: 12px; padding: 10px 12px; font-size: 15px; }
+  .confirm button { border: 0; background: var(--over); color: var(--on-accent); border-radius: 10px; padding: 8px 14px; font-weight: 700; }
+  .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 15px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  .fine { color: var(--muted); font-size: 14px; margin: 0; }
+  textarea.copybox { width: 100%; min-height: 160px; font: 14px/1.5 var(--f-body); padding: 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+  [hidden] { display: none !important; }
+  @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>원팀 행사 정산 <span class="fine" style="font-size:15px">10/14 · 6조</span></h1>
+
+  <section class="total num" id="total" aria-live="polite">
+    <div class="left" id="t-left"></div>
+    <div class="meter"><i id="t-meter"></i></div>
+    <div class="row"><span id="t-spent"></span><span id="t-budget"></span></div>
+    <div class="row"><span id="t-per"></span></div>
+  </section>
+
+  <div class="people">
+    <span>인원</span>
+    <div class="stepper">
+      <button id="p-minus" aria-label="한 명 빼기">−</button>
+      <b class="num" id="p-count">12</b>
+      <button id="p-plus" aria-label="한 명 더하기">+</button>
+    </div>
+  </div>
+
+  <div id="items" style="display:grid;gap:16px"></div>
+
+  <div class="tools">
+    <button id="copy">정산 내용 복사</button>
+    <button id="reset" class="danger">모두 지우기</button>
+    <div class="confirm" id="confirm" hidden>
+      <span>적은 내용이 모두 지워져요.</span>
+      <span style="display:flex;gap:8px">
+        <button id="confirm-no" style="background:var(--surface);color:var(--ink)">취소</button>
+        <button id="confirm-yes">지우기</button>
+      </span>
+    </div>
+    <textarea class="copybox" id="copybox" hidden readonly></textarea>
+  </div>
+
+  <p class="fine">이 폰의 브라우저에만 저장돼요. 다른 폰이나 카톡 안 브라우저에서 열면 비어 있어요. 끝나면 '정산 내용 복사'로 따로 보관해두세요.</p>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// 원팀 행사(10/14) 당일 지출 정산. 진행하는 한 사람이 자기 폰에서 쓰는 도구라
+// 서버 없이 이 브라우저(localStorage)에만 저장한다.
+const STORE = 'oneteam-calc-v1';
+
+// 예산은 안내문의 1인 금액 그대로. perHead × 인원이 그 항목 예산이다.
+// inBudget이 false면 1인 10만 원 예산 밖(검토 중인 전시)이라 전체 예산에 넣지 않는다.
+const ITEMS = [
+  { key: 'cafe',   name: '더바움 서울역점', sub: '10:00 카페',      perHead: 10000 },
+  { key: 'lunch',  name: '도온 서울역점',   sub: '11:20 점심',      perHead: 20000 },
+  { key: 'class',  name: '셀갸또',          sub: '13:00 케이크 클래스', perHead: 70000 },
+  { key: 'show',   name: '그라운드시소 센트럴', sub: '전시 · 검토 중', perHead: 12000, inBudget: false },
+  { key: 'etc',    name: '기타',            sub: '택시, 물, 간식 등', perHead: 0 },
+];
+const PER_HEAD_BUDGET = 100000;
+
+const $ = (id) => document.getElementById(id);
+const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); for (const k of kids) e.append(k); return e; };
+const won = (n) => Math.round(n).toLocaleString('ko-KR') + '원';
+
+// ===================== 저장 =====================
+function loadState() {
+  try {
+    const s = JSON.parse(localStorage.getItem(STORE));
+    if (s && s.pays) return s;
+  } catch {}
+  return { people: 12, pays: {} };   // pays: { itemKey: [{ amt, memo, rcpt }] }
+}
+let state = loadState();
+function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch {} }
+
+// ===================== 계산식 =====================
+// 금액 칸에 '4500*12', '23000+18500' 같은 식을 받는다. eval 대신 작은 파서로
+// 숫자와 + - * / ( )만 읽는다. 쉼표와 '원', 'x', '×'는 편하게 쓰라고 받아준다.
+function calc(src) {
+  const s = String(src).replace(/[,\s원]/g, '').replace(/[x×X]/g, '*').replace(/÷/g, '/');
+  if (!s) return null;
+  let i = 0;
+  const peek = () => s[i];
+  function num() {
+    const m = /^\d+(\.\d+)?/.exec(s.slice(i));
+    if (!m) throw new Error();
+    i += m[0].length;
+    return parseFloat(m[0]);
+  }
+  function atom() {
+    if (peek() === '(') { i++; const v = expr(); if (peek() !== ')') throw new Error(); i++; return v; }
+    if (peek() === '-') { i++; return -atom(); }
+    return num();
+  }
+  function term() {
+    let v = atom();
+    while (peek() === '*' || peek() === '/') {
+      const op = s[i++]; const r = atom();
+      if (op === '/' && r === 0) throw new Error();
+      v = op === '*' ? v * r : v / r;
+    }
+    return v;
+  }
+  function expr() {
+    let v = term();
+    while (peek() === '+' || peek() === '-') { const op = s[i++]; const r = term(); v = op === '+' ? v + r : v - r; }
+    return v;
+  }
+  try {
+    const v = expr();
+    if (i !== s.length || !isFinite(v)) return NaN;
+    return Math.round(v);
+  } catch { return NaN; }
+}
+
+// ===================== 화면 =====================
+const spentOf = (k) => (state.pays[k] || []).reduce((a, p) => a + p.amt, 0);
+
+function renderTotal() {
+  const n = state.people;
+  const budget = PER_HEAD_BUDGET * n;
+  const spentIn = ITEMS.filter((it) => it.inBudget !== false).reduce((a, it) => a + spentOf(it.key), 0);
+  const spentAll = ITEMS.reduce((a, it) => a + spentOf(it.key), 0);
+  const left = budget - spentIn;
+  $('total').classList.toggle('over', left < 0);
+  $('t-left').innerHTML = left >= 0
+    ? `${won(left)} <small>남음</small>`
+    : `${won(-left)} <small>넘음</small>`;
+  $('t-meter').style.width = Math.min(100, budget ? spentIn / budget * 100 : 0) + '%';
+  $('t-spent').textContent = `쓴 돈 ${won(spentIn)}`;
+  $('t-budget').textContent = `예산 ${won(budget)} (1인 10만 × ${n})`;
+  const extra = spentAll - spentIn;
+  $('t-per').textContent = `1인당 ${won(n ? spentAll / n : 0)}` + (extra ? ` · 전시 ${won(extra)} 포함` : '');
+}
+
+function renderItem(it) {
+  const n = state.people;
+  const budget = it.perHead * n;
+  const spent = spentOf(it.key);
+  const card = el('section', { className: 'item', id: 'item-' + it.key });
+
+  card.append(el('header', {},
+    el('h2', { textContent: it.name }),
+    el('small', { textContent: it.sub })));
+
+  // 예산이 있는 항목만 막대와 남은 돈을 보여준다(기타는 예산이 없다).
+  if (budget) {
+    const diff = budget - spent;
+    const st = el('div', { className: 'status num' },
+      el('span', {}, '쓴 돈 ', el('b', { textContent: won(spent) }), ` / ${won(budget)}`),
+      el('span', { className: diff >= 0 ? 'ok' : 'bad', textContent: diff >= 0 ? `${won(diff)} 남음` : `${won(-diff)} 넘음` }));
+    const bar = el('div', { className: 'bar' + (diff < 0 ? ' over' : '') }, Object.assign(el('i'), { style: `width:${Math.min(100, spent / budget * 100)}%` }));
+    card.append(st, bar);
+    const note = el('div', { className: 'fine num', textContent: `1인 ${won(it.perHead)} × ${n}명` + (it.inBudget === false ? ' · 10만 원 예산 밖' : '') + (spent ? ` · 실제 1인 ${won(spent / n)}` : '') });
+    card.append(note);
+  } else if (spent) {
+    card.append(el('div', { className: 'status num' }, el('span', {}, '쓴 돈 ', el('b', { textContent: won(spent) }))));
+  }
+
+  // 결제 목록
+  const list = el('ul', { className: 'pays' });
+  (state.pays[it.key] || []).forEach((p, idx) => {
+    const r = el('button', { className: 'rcpt' + (p.rcpt ? ' on' : ''), textContent: p.rcpt ? '영수증 ✓' : '영수증', 'aria-pressed': String(!!p.rcpt) });
+    r.onclick = () => { p.rcpt = !p.rcpt; save(); render(); };
+    const x = el('button', { className: 'x', textContent: '×', 'aria-label': '이 결제 지우기' });
+    x.onclick = () => { state.pays[it.key].splice(idx, 1); save(); render(); toast('지웠어요'); };
+    list.append(el('li', { className: 'pay num' }, r, el('span', { className: 'memo', textContent: p.memo || '' }), el('span', { className: 'amt', textContent: won(p.amt) }), x));
+  });
+  if (list.children.length) card.append(list);
+
+  // 입력: 금액(계산식 가능) + 메모
+  const amt = el('input', { className: 'amt-in', id: 'amt-' + it.key, inputMode: 'text', placeholder: '금액 (예: 4500*12)', autocomplete: 'off', enterKeyHint: 'done' });
+  const memo = el('input', { id: 'memo-' + it.key, placeholder: '메모 (선택)', autocomplete: 'off' });
+  const preview = el('div', { className: 'preview num' });
+  const addBtn = el('button', { textContent: '추가' });
+  const update = () => {
+    const v = calc(amt.value);
+    preview.className = 'preview num' + (Number.isNaN(v) ? ' err' : '');
+    preview.textContent = v === null ? '' : Number.isNaN(v) ? '식을 다시 확인해주세요' : `= ${won(v)}`;
+  };
+  const add = () => {
+    const v = calc(amt.value);
+    if (v === null || Number.isNaN(v) || v === 0) { update(); amt.focus(); return; }
+    (state.pays[it.key] ||= []).push({ amt: v, memo: memo.value.trim(), rcpt: false });
+    save(); render(); toast(`${it.name} ${won(v)} 추가했어요`);
+  };
+  amt.oninput = update;
+  amt.onkeydown = memo.onkeydown = (e) => { if (e.key === 'Enter') add(); };
+  addBtn.onclick = add;
+  const form = el('div', { className: 'add' }, amt, addBtn, preview, memo);
+  card.append(form);
+
+  // 빠른 입력: 1인 금액 × 인원. 예산대로 냈을 때 한 번에 적는다.
+  if (it.perHead) {
+    const q = el('div', { className: 'quick' });
+    const b = el('button', { textContent: `${won(it.perHead)} × ${n}명` });
+    b.onclick = () => { amt.value = `${it.perHead}*${n}`; update(); amt.focus(); };
+    q.append(b);
+    card.append(q);
+  }
+  return card;
+}
+
+function render() {
+  $('p-count').textContent = state.people;
+  renderTotal();
+  const box = $('items'); box.replaceChildren(...ITEMS.map(renderItem));
+}
+
+// ===================== 인원 · 도구 =====================
+$('p-minus').onclick = () => { if (state.people > 1) { state.people--; save(); render(); } };
+$('p-plus').onclick = () => { state.people++; save(); render(); };
+
+function summary() {
+  const n = state.people;
+  const lines = [`[원팀 행사 정산] 10/14 · ${n}명`];
+  let all = 0;
+  for (const it of ITEMS) {
+    const ps = state.pays[it.key] || [];
+    if (!ps.length) continue;
+    const sum = spentOf(it.key); all += sum;
+    lines.push('', `■ ${it.name}  ${won(sum)}`);
+    for (const p of ps) lines.push(`  - ${won(p.amt)}${p.memo ? ' ' + p.memo : ''}${p.rcpt ? ' (영수증)' : ''}`);
+  }
+  lines.push('', `합계 ${won(all)} · 1인 ${won(n ? all / n : 0)}`, `예산 ${won(PER_HEAD_BUDGET * n)}`);
+  return lines.join('\n');
+}
+
+$('copy').onclick = async () => {
+  const text = summary();
+  try { await navigator.clipboard.writeText(text); toast('복사했어요. 카톡에 붙여넣으세요'); $('copybox').hidden = true; }
+  catch { const b = $('copybox'); b.value = text; b.hidden = false; b.focus(); b.select(); toast('아래 글을 길게 눌러 복사하세요'); }
+};
+$('reset').onclick = () => { $('confirm').hidden = false; };
+$('confirm-no').onclick = () => { $('confirm').hidden = true; };
+$('confirm-yes').onclick = () => { state = { people: 12, pays: {} }; save(); $('confirm').hidden = true; render(); toast('모두 지웠어요'); };
+
+let tt;
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 1800); }
+
+render();
+</script>
+</body>
+</html>
