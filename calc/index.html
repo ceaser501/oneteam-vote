@@ -90,6 +90,28 @@
   textarea.copybox { width: 100%; min-height: 160px; font: 14px/1.5 var(--f-body); padding: 10px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
   [hidden] { display: none !important; }
   @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+
+  /* 주문 줄: 메뉴 · 단가 × 수량 = 소계 */
+  .lines { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .line { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; padding: 8px 10px; border-radius: 10px; background: var(--bg); }
+  .line .what { min-width: 0; overflow-wrap: anywhere; }
+  .line .what small { display: block; color: var(--muted); font-size: 14px; }
+  .line .sub { font-weight: 700; text-align: right; align-self: center; }
+  .line .ctl { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; }
+  .line .ctl button { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 18px; line-height: 1; }
+  .line .ctl b { min-width: 2.5ch; text-align: center; }
+  .line .ctl .x { margin-left: auto; width: auto; padding: 0 8px; border: 0; background: none; color: var(--muted); font-size: 14px; }
+  .count { font-size: 14px; color: var(--muted); }
+  .count.warn { color: var(--over); font-weight: 700; }
+  .add3 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .add3 input { width: 100%; min-width: 0; padding: 12px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font-size: 17px; }
+  .add3 .full { grid-column: 1 / -1; }
+  .add3 .qty { display: flex; align-items: center; justify-content: space-between; gap: 6px; border: 1.5px solid var(--line); border-radius: 12px; padding: 4px 6px; background: var(--surface); }
+  .add3 .qty button { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font-size: 18px; }
+  .add3 .go { border: 0; border-radius: 12px; background: var(--accent); color: var(--on-accent); font-weight: 700; padding: 12px; }
+  .add3 .preview { grid-column: 1 / -1; font-size: 14px; color: var(--muted); min-height: 1.4em; margin: -2px 0 0; }
+  .add3 .preview.err { color: var(--over); }
+  .card-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
 </style>
 </head>
 <body>
@@ -134,16 +156,17 @@
 <script>
 // 원팀 행사(10/14) 당일 지출 정산. 진행하는 한 사람이 자기 폰에서 쓰는 도구라
 // 서버 없이 이 브라우저(localStorage)에만 저장한다.
-const STORE = 'oneteam-calc-v1';
+//
+// 사람마다 시키는 게 달라서 한 항목을 '메뉴 · 단가 × 수량' 줄 여러 개로 적는다.
+// 같은 메뉴가 여러 잔이면 수량만 올리면 된다.
+const STORE = 'oneteam-calc-v2';
 
 // 예산은 안내문의 1인 금액 그대로. perHead × 인원이 그 항목 예산이다.
-// inBudget이 false면 1인 10만 원 예산 밖(검토 중인 전시)이라 전체 예산에 넣지 않는다.
 const ITEMS = [
-  { key: 'cafe',   name: '더바움 서울역점', sub: '10:00 카페',      perHead: 10000 },
-  { key: 'lunch',  name: '도온 서울역점',   sub: '11:20 점심',      perHead: 20000 },
-  { key: 'class',  name: '셀갸또',          sub: '13:00 케이크 클래스', perHead: 70000 },
-  { key: 'show',   name: '그라운드시소 센트럴', sub: '전시 · 검토 중', perHead: 12000, inBudget: false },
-  { key: 'etc',    name: '기타',            sub: '택시, 물, 간식 등', perHead: 0 },
+  { key: 'cafe',  name: '더바움 서울역점', sub: '10:00 카페',          perHead: 10000, unit: '잔', hint: '아메리카노' },
+  { key: 'lunch', name: '도온 서울역점',   sub: '11:20 점심',          perHead: 20000, unit: '개', hint: '메뉴 이름' },
+  { key: 'class', name: '셀갸또',          sub: '13:00 케이크 클래스', perHead: 70000, unit: '명', hint: '생과일 케이크', preset: { name: '생과일 케이크 클래스', price: 70000 } },
+  { key: 'etc',   name: '기타',            sub: '택시, 물, 간식 등',   perHead: 0,     unit: '개', hint: '택시' },
 ];
 const PER_HEAD_BUDGET = 100000;
 
@@ -155,18 +178,19 @@ const won = (n) => Math.round(n).toLocaleString('ko-KR') + '원';
 function loadState() {
   try {
     const s = JSON.parse(localStorage.getItem(STORE));
-    if (s && s.pays) return s;
+    if (s && s.lines) return s;
   } catch {}
-  return { people: 12, pays: {} };   // pays: { itemKey: [{ amt, memo, rcpt }] }
+  return { people: 12, lines: {}, rcpt: {} };   // lines: { itemKey: [{ name, price, qty }] }
 }
 let state = loadState();
 function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch {} }
 
 // ===================== 계산식 =====================
-// 금액 칸에 '4500*12', '23000+18500' 같은 식을 받는다. eval 대신 작은 파서로
-// 숫자와 + - * / ( )만 읽는다. 쉼표와 '원', 'x', '×'는 편하게 쓰라고 받아준다.
+// 단가 칸에 '4500+500'(샷 추가) 같은 식을 받는다. eval 대신 작은 파서로
+// 숫자와 + - * / ( )만 읽는다. 쉼표, '원', 'x', '×', '만'(=10000)은 편하게 쓰라고 받아준다.
 function calc(src) {
-  const s = String(src).replace(/[,\s원]/g, '').replace(/[x×X]/g, '*').replace(/÷/g, '/');
+  const s = String(src).replace(/[,\s원]/g, '').replace(/[x×X]/g, '*').replace(/÷/g, '/')
+    .replace(/(\d+(?:\.\d+)?)만(\d*)/g, (_, a, b) => String(parseFloat(a) * 10000 + (b ? parseInt(b, 10) : 0)));
   if (!s) return null;
   let i = 0;
   const peek = () => s[i];
@@ -203,23 +227,21 @@ function calc(src) {
 }
 
 // ===================== 화면 =====================
-const spentOf = (k) => (state.pays[k] || []).reduce((a, p) => a + p.amt, 0);
+const linesOf = (k) => state.lines[k] || [];
+const spentOf = (k) => linesOf(k).reduce((a, l) => a + l.price * l.qty, 0);
+const qtyOf = (k) => linesOf(k).reduce((a, l) => a + l.qty, 0);
 
 function renderTotal() {
   const n = state.people;
   const budget = PER_HEAD_BUDGET * n;
-  const spentIn = ITEMS.filter((it) => it.inBudget !== false).reduce((a, it) => a + spentOf(it.key), 0);
-  const spentAll = ITEMS.reduce((a, it) => a + spentOf(it.key), 0);
-  const left = budget - spentIn;
+  const spent = ITEMS.reduce((a, it) => a + spentOf(it.key), 0);
+  const left = budget - spent;
   $('total').classList.toggle('over', left < 0);
-  $('t-left').innerHTML = left >= 0
-    ? `${won(left)} <small>남음</small>`
-    : `${won(-left)} <small>넘음</small>`;
-  $('t-meter').style.width = Math.min(100, budget ? spentIn / budget * 100 : 0) + '%';
-  $('t-spent').textContent = `쓴 돈 ${won(spentIn)}`;
+  $('t-left').innerHTML = left >= 0 ? `${won(left)} <small>남음</small>` : `${won(-left)} <small>넘음</small>`;
+  $('t-meter').style.width = Math.min(100, budget ? spent / budget * 100 : 0) + '%';
+  $('t-spent').textContent = `쓴 돈 ${won(spent)}`;
   $('t-budget').textContent = `예산 ${won(budget)} (1인 10만 × ${n})`;
-  const extra = spentAll - spentIn;
-  $('t-per').textContent = `1인당 ${won(n ? spentAll / n : 0)}` + (extra ? ` · 전시 ${won(extra)} 포함` : '');
+  $('t-per').textContent = `1인당 ${won(n ? spent / n : 0)}`;
 }
 
 function renderItem(it) {
@@ -227,73 +249,90 @@ function renderItem(it) {
   const budget = it.perHead * n;
   const spent = spentOf(it.key);
   const card = el('section', { className: 'item', id: 'item-' + it.key });
+  card.append(el('header', {}, el('h2', { textContent: it.name }), el('small', { textContent: it.sub })));
 
-  card.append(el('header', {},
-    el('h2', { textContent: it.name }),
-    el('small', { textContent: it.sub })));
-
-  // 예산이 있는 항목만 막대와 남은 돈을 보여준다(기타는 예산이 없다).
   if (budget) {
     const diff = budget - spent;
-    const st = el('div', { className: 'status num' },
-      el('span', {}, '쓴 돈 ', el('b', { textContent: won(spent) }), ` / ${won(budget)}`),
-      el('span', { className: diff >= 0 ? 'ok' : 'bad', textContent: diff >= 0 ? `${won(diff)} 남음` : `${won(-diff)} 넘음` }));
-    const bar = el('div', { className: 'bar' + (diff < 0 ? ' over' : '') }, Object.assign(el('i'), { style: `width:${Math.min(100, spent / budget * 100)}%` }));
-    card.append(st, bar);
-    const note = el('div', { className: 'fine num', textContent: `1인 ${won(it.perHead)} × ${n}명` + (it.inBudget === false ? ' · 10만 원 예산 밖' : '') + (spent ? ` · 실제 1인 ${won(spent / n)}` : '') });
-    card.append(note);
+    card.append(
+      el('div', { className: 'status num' },
+        el('span', {}, '쓴 돈 ', el('b', { textContent: won(spent) }), ` / ${won(budget)}`),
+        el('span', { className: diff >= 0 ? 'ok' : 'bad', textContent: diff >= 0 ? `${won(diff)} 남음` : `${won(-diff)} 넘음` })),
+      el('div', { className: 'bar' + (diff < 0 ? ' over' : '') }, Object.assign(el('i'), { style: `width:${Math.min(100, spent / budget * 100)}%` })));
   } else if (spent) {
     card.append(el('div', { className: 'status num' }, el('span', {}, '쓴 돈 ', el('b', { textContent: won(spent) }))));
   }
 
-  // 결제 목록
-  const list = el('ul', { className: 'pays' });
-  (state.pays[it.key] || []).forEach((p, idx) => {
-    const r = el('button', { className: 'rcpt' + (p.rcpt ? ' on' : ''), textContent: p.rcpt ? '영수증 ✓' : '영수증', 'aria-pressed': String(!!p.rcpt) });
-    r.onclick = () => { p.rcpt = !p.rcpt; save(); render(); };
-    const x = el('button', { className: 'x', textContent: '×', 'aria-label': '이 결제 지우기' });
-    x.onclick = () => { state.pays[it.key].splice(idx, 1); save(); render(); toast('지웠어요'); };
-    list.append(el('li', { className: 'pay num' }, r, el('span', { className: 'memo', textContent: p.memo || '' }), el('span', { className: 'amt', textContent: won(p.amt) }), x));
+  // 주문 줄
+  const list = el('ul', { className: 'lines' });
+  linesOf(it.key).forEach((l, idx) => {
+    const set = (q) => { if (q < 1) return; l.qty = q; save(); render(); };
+    const minus = el('button', { textContent: '−', 'aria-label': '하나 빼기' }); minus.onclick = () => set(l.qty - 1);
+    const plus = el('button', { textContent: '+', 'aria-label': '하나 더하기' }); plus.onclick = () => set(l.qty + 1);
+    const x = el('button', { className: 'x', textContent: '지우기' });
+    x.onclick = () => { linesOf(it.key).splice(idx, 1); save(); render(); toast('지웠어요'); };
+    list.append(el('li', { className: 'line num' },
+      el('div', { className: 'what' }, l.name || '(이름 없음)', el('small', { textContent: `${won(l.price)} × ${l.qty}${it.unit}` })),
+      el('div', { className: 'sub', textContent: won(l.price * l.qty) }),
+      el('div', { className: 'ctl' }, minus, el('b', { textContent: l.qty }), plus, x)));
   });
   if (list.children.length) card.append(list);
 
-  // 입력: 금액(계산식 가능) + 메모
-  const amt = el('input', { className: 'amt-in', id: 'amt-' + it.key, inputMode: 'text', placeholder: '금액 (예: 4500*12)', autocomplete: 'off', enterKeyHint: 'done' });
-  const memo = el('input', { id: 'memo-' + it.key, placeholder: '메모 (선택)', autocomplete: 'off' });
-  const preview = el('div', { className: 'preview num' });
-  const addBtn = el('button', { textContent: '추가' });
+  // 입력: 메뉴 / 단가(계산식 가능) / 수량
+  let qty = 1;
+  const name = el('input', { id: 'name-' + it.key, placeholder: `메뉴 (예: ${it.hint})`, autocomplete: 'off', className: 'full' });
+  const price = el('input', { id: 'price-' + it.key, placeholder: '단가', inputMode: 'text', autocomplete: 'off', enterKeyHint: 'done' });
+  const qv = el('b', { className: 'num', textContent: '1' });
+  const qm = el('button', { textContent: '−', 'aria-label': '수량 빼기' });
+  const qp = el('button', { textContent: '+', 'aria-label': '수량 더하기' });
+  const preview = el('p', { className: 'preview num' });
   const update = () => {
-    const v = calc(amt.value);
+    const v = calc(price.value);
     preview.className = 'preview num' + (Number.isNaN(v) ? ' err' : '');
-    preview.textContent = v === null ? '' : Number.isNaN(v) ? '식을 다시 확인해주세요' : `= ${won(v)}`;
+    preview.textContent = v === null ? '' : Number.isNaN(v) ? '단가를 다시 확인해주세요' : `${won(v)} × ${qty}${it.unit} = ${won(v * qty)}`;
   };
+  qm.onclick = () => { if (qty > 1) { qty--; qv.textContent = qty; update(); } };
+  qp.onclick = () => { qty++; qv.textContent = qty; update(); };
+  const go = el('button', { className: 'go full', textContent: '추가' });
   const add = () => {
-    const v = calc(amt.value);
-    if (v === null || Number.isNaN(v) || v === 0) { update(); amt.focus(); return; }
-    (state.pays[it.key] ||= []).push({ amt: v, memo: memo.value.trim(), rcpt: false });
-    save(); render(); toast(`${it.name} ${won(v)} 추가했어요`);
+    const v = calc(price.value);
+    if (v === null || Number.isNaN(v) || v <= 0) { update(); price.focus(); return; }
+    const nm = name.value.trim();
+    // 같은 이름·같은 단가가 이미 있으면 새 줄을 만들지 않고 수량만 더한다.
+    const same = linesOf(it.key).find((l) => l.name === nm && l.price === v);
+    if (same) same.qty += qty; else (state.lines[it.key] ||= []).push({ name: nm, price: v, qty });
+    save(); render(); toast(`${nm || it.name} ${qty}${it.unit} 추가했어요`);
   };
-  amt.oninput = update;
-  amt.onkeydown = memo.onkeydown = (e) => { if (e.key === 'Enter') add(); };
-  addBtn.onclick = add;
-  const form = el('div', { className: 'add' }, amt, addBtn, preview, memo);
-  card.append(form);
+  price.oninput = update;
+  name.onkeydown = price.onkeydown = (e) => { if (e.key === 'Enter') add(); };
+  go.onclick = add;
+  card.append(el('div', { className: 'add3' }, name, price, el('div', { className: 'qty' }, qm, qv, qp), preview, go));
 
-  // 빠른 입력: 1인 금액 × 인원. 예산대로 냈을 때 한 번에 적는다.
-  if (it.perHead) {
+  if (it.preset) {
     const q = el('div', { className: 'quick' });
-    const b = el('button', { textContent: `${won(it.perHead)} × ${n}명` });
-    b.onclick = () => { amt.value = `${it.perHead}*${n}`; update(); amt.focus(); };
+    const b = el('button', { textContent: `${it.preset.name} ${won(it.preset.price)} × ${n}명` });
+    b.onclick = () => { name.value = it.preset.name; price.value = String(it.preset.price); qty = n; qv.textContent = qty; update(); };
     q.append(b);
     card.append(q);
   }
+
+  // 수량 합계와 영수증. 카페·점심은 인원과 수량이 맞는지 보기 쉽게 같이 보여준다.
+  const total = qtyOf(it.key);
+  const foot = el('div', { className: 'card-foot' });
+  if (total) {
+    const off = it.key !== 'etc' && total !== n;
+    foot.append(el('span', { className: 'count num' + (off ? ' warn' : ''), textContent: `모두 ${total}${it.unit}` + (it.key !== 'etc' ? ` · 인원 ${n}명` : '') }));
+  } else foot.append(el('span'));
+  const r = el('button', { className: 'rcpt' + (state.rcpt[it.key] ? ' on' : ''), textContent: state.rcpt[it.key] ? '영수증 받음 ✓' : '영수증' });
+  r.onclick = () => { state.rcpt[it.key] = !state.rcpt[it.key]; save(); render(); };
+  foot.append(r);
+  card.append(foot);
   return card;
 }
 
 function render() {
   $('p-count').textContent = state.people;
   renderTotal();
-  const box = $('items'); box.replaceChildren(...ITEMS.map(renderItem));
+  $('items').replaceChildren(...ITEMS.map(renderItem));
 }
 
 // ===================== 인원 · 도구 =====================
@@ -305,13 +344,13 @@ function summary() {
   const lines = [`[원팀 행사 정산] 10/14 · ${n}명`];
   let all = 0;
   for (const it of ITEMS) {
-    const ps = state.pays[it.key] || [];
-    if (!ps.length) continue;
+    const ls = linesOf(it.key);
+    if (!ls.length) continue;
     const sum = spentOf(it.key); all += sum;
-    lines.push('', `■ ${it.name}  ${won(sum)}`);
-    for (const p of ps) lines.push(`  - ${won(p.amt)}${p.memo ? ' ' + p.memo : ''}${p.rcpt ? ' (영수증)' : ''}`);
+    lines.push('', `■ ${it.name}  ${won(sum)}${state.rcpt[it.key] ? ' (영수증)' : ''}`);
+    for (const l of ls) lines.push(`  - ${l.name || '(이름 없음)'} ${won(l.price)} × ${l.qty} = ${won(l.price * l.qty)}`);
   }
-  lines.push('', `합계 ${won(all)} · 1인 ${won(n ? all / n : 0)}`, `예산 ${won(PER_HEAD_BUDGET * n)}`);
+  lines.push('', `합계 ${won(all)} · 1인 ${won(n ? all / n : 0)}`, `예산 ${won(PER_HEAD_BUDGET * n)} · ${all <= PER_HEAD_BUDGET * n ? '남음 ' + won(PER_HEAD_BUDGET * n - all) : '넘음 ' + won(all - PER_HEAD_BUDGET * n)}`);
   return lines.join('\n');
 }
 
@@ -322,7 +361,7 @@ $('copy').onclick = async () => {
 };
 $('reset').onclick = () => { $('confirm').hidden = false; };
 $('confirm-no').onclick = () => { $('confirm').hidden = true; };
-$('confirm-yes').onclick = () => { state = { people: 12, pays: {} }; save(); $('confirm').hidden = true; render(); toast('모두 지웠어요'); };
+$('confirm-yes').onclick = () => { state = { people: 12, lines: {}, rcpt: {} }; save(); $('confirm').hidden = true; render(); toast('모두 지웠어요'); };
 
 let tt;
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 1800); }
